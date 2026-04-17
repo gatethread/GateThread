@@ -1,67 +1,75 @@
 # LLMGate
 
-> A privacy-aware AI gateway for engineering teams.
-> One endpoint. Sensitive data stays local. Cloud models when you need them.
+> The standard for how engineering teams use AI — private, auditable, and cost-efficient.
+> One gateway. Sensitive data stays on your infrastructure. Cloud models when you need them.
 
 ---
 
-## The problem
+## The Problem
 
-Your team wants AI assistance in the editor. Your company has data that cannot reach OpenAI or Anthropic — customer records, credentials, proprietary code, incident details, internal infrastructure.
+Every engineering team that adopts AI tooling faces the same unresolved tension:
 
-So you either block AI tools entirely, or accept the risk.
+- The best models are cloud-hosted — your code and data leave your infrastructure
+- Local models are private — but they can't match cloud model quality
+- There is no middle layer that makes intelligent decisions, protects sensitive data, and remembers context across sessions
 
-**LLMGate is the third option.**
+Teams either accept the risk or block AI tools entirely. LLMGate is the third option.
 
 ---
 
-## How it works
+## How It Works
+
+LLMGate is a self-hosted gateway that runs on your own infrastructure. Every prompt from your editor passes through it. A local model inspects each prompt and decides what happens next.
 
 ```
-                         Your Editor
-                              │
-                              │  prompt
-                              ▼
-                    ┌──────────────────┐
-                    │    Classifier    │
-                    │    + PII scan    │
-                    └────────┬─────────┘
-                             │
-               ┌─────────────┴─────────────┐
-               │                           │
-             safe                      sensitive
-               │                           │
-               ▼                           ▼
-       ┌───────────────┐         ┌──────────────────┐
-       │    Ollama     │         │    Presidio      │
-       │  local model  │         │   redact PII     │
-       └───────┬───────┘         └────────┬─────────┘
-               │                          │
-               │                          ▼
-               │                 ┌──────────────────┐
-               │                 │     Claude       │
-               │                 │  cloud reasoning │
-               │                 └────────┬─────────┘
-               │                          │
-               │                          ▼
-               │                 ┌──────────────────┐
-               │                 │   Rehydrate      │
-               │                 │  restore context │
-               │                 └────────┬─────────┘
-               │                          │
-               └──────────────┬───────────┘
-                              │
-                              │  response
-                              ▼
-                         Your Editor
+Your Editor (Cline, Continue, Cursor, ...)
+              │
+              │  prompt
+              ▼
+     ┌────────────────────┐
+     │   LLMGate on AWS   │
+     │                    │
+     │  Local LLM decides │
+     └────────┬───────────┘
+              │
+   ┌──────────┼──────────┐
+   │          │          │
+ Local      Cloud      Block
+   │          │
+   │    Redact PII first
+   │          │
+   │          ▼
+   │       Claude
+   │          │
+   │    Restore context
+   │          │
+   └──────────┤
+              │
+              ▼
+         Your Editor
 ```
 
-Sensitive data never leaves your infrastructure.
-Non-sensitive reasoning goes to the best model for the job.
+When your session ends, LLMGate compresses what was discussed into structured facts. The next time you work on something related, that context is retrieved automatically — cheap, structured, and immediately useful.
+
+Every decision is logged. Nothing is a black box.
 
 ---
 
-## Who this is for
+## Core Principles
+
+**Private by default.** Sensitive data never reaches a cloud provider unredacted. The local model makes the call on every prompt.
+
+**Intelligent routing.** Not every question needs Claude. Simple tasks stay local and cost nothing. Hard tasks go to the best available model.
+
+**Memory that works.** Sessions are compressed into structured facts, not raw transcripts. Context is retrieved on demand — only when relevant, never as noise.
+
+**Full auditability.** Every prompt is logged: who asked, where it went, what was redacted. Teams can prove compliance without guesswork.
+
+**Operator-grade deployment.** Infrastructure-as-code from day one. No manual setup. Repeatable across environments.
+
+---
+
+## Who This Is For
 
 | Use case | Why LLMGate |
 |----------|-------------|
@@ -69,24 +77,36 @@ Non-sensitive reasoning goes to the best model for the job.
 | Healthcare & finance | HIPAA, PCI-DSS, data residency requirements |
 | Defense & government | Air-gapped environments, zero cloud exposure |
 | Companies with proprietary code | Your codebase is your IP — keep it local |
-| Cost-conscious teams | Cheap tasks stay local, hard tasks go to Claude |
+| Cost-conscious teams | Simple tasks stay local, hard tasks go to Claude |
 
 ---
 
 ## Quickstart
 
-**Requirements:** Docker + Docker Compose
+**Requirements:** Terraform, AWS credentials
 
 ```bash
 git clone https://github.com/zoolaph/llmgate
 cd llmgate
 cp config.example.yaml config.yaml
-docker compose up
+terraform -chdir=deploy/aws init
+terraform -chdir=deploy/aws apply
 ```
 
-LLMGate is now running at `http://localhost:8080/v1` — fully OpenAI-compatible.
+LLMGate will output the gateway URL. Point your editor at it.
 
 **Connect your editor:**
+
+<details>
+<summary>Cline (VS Code)</summary>
+
+```
+Provider : OpenAI Compatible
+Base URL : https://<your-gateway-url>/v1
+API Key  : llmgate
+Model    : auto
+```
+</details>
 
 <details>
 <summary>Continue (VS Code / JetBrains)</summary>
@@ -97,7 +117,7 @@ LLMGate is now running at `http://localhost:8080/v1` — fully OpenAI-compatible
     "title": "LLMGate",
     "provider": "openai",
     "model": "auto",
-    "apiBase": "http://localhost:8080/v1",
+    "apiBase": "https://<your-gateway-url>/v1",
     "apiKey": "llmgate"
   }]
 }
@@ -105,179 +125,50 @@ LLMGate is now running at `http://localhost:8080/v1` — fully OpenAI-compatible
 </details>
 
 <details>
-<summary>Cline / Roo Code</summary>
-
-```
-Provider : OpenAI Compatible
-Base URL : http://localhost:8080/v1
-API Key  : llmgate
-Model    : auto
-```
-</details>
-
-<details>
 <summary>curl</summary>
 
 ```bash
-curl http://localhost:8080/v1/chat/completions \
+curl https://<your-gateway-url>/v1/chat/completions \
   -H "Authorization: Bearer llmgate" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "auto",
-    "messages": [{"role": "user", "content": "explain kubernetes ingress"}]
+    "messages": [{"role": "user", "content": "explain this function"}]
   }'
 ```
 </details>
 
 ---
 
-## Configuration
+## Tech Stack
 
-```yaml
-# config.yaml
-
-gateway:
-  port: 8080
-  api_key: llmgate
-
-models:
-  local: ollama/llama3.2
-  cloud: claude-3-5-sonnet-20241022
-
-routing:
-  default: auto          # auto | local | cloud | sensitive
-
-privacy:
-  redact:
-    - credentials        # API keys, tokens, passwords
-    - pii                # Names, emails, phone numbers
-    - internal_urls      # Hostnames, internal IPs
-    - customer_ids       # UUIDs, account numbers
-
-policy:
-  - if: contains_credentials
-    then: block
-  - if: sensitive_pii
-    then: sensitive      # redact → cloud → rehydrate
-  - if: low_complexity
-    then: local
-  - if: high_complexity
-    then: cloud
-
-observability:
-  tracing: true
-  metrics_port: 9090
-```
-
----
-
-## Routing modes
-
-| Mode | Behaviour |
-|------|-----------|
-| `auto` | LLMGate decides — local for simple, cloud for complex |
-| `local` | Always Ollama — nothing leaves your machine |
-| `cloud` | Always Claude — full model capability |
-| `sensitive` | Redact → Claude → Rehydrate |
-| `block` | Request rejected — no model called |
-
----
-
-## Deployment
-
-**Local / single developer**
-```bash
-docker compose up
-```
-
-**Kubernetes (Helm)**
-```bash
-helm repo add llmgate https://charts.llmgate.dev
-helm install llmgate llmgate/llmgate -f values.yaml
-```
-
-**AWS EKS with IRSA** — no API keys in your cluster
-```bash
-helm install llmgate llmgate/llmgate \
-  --set aws.irsa.enabled=true \
-  --set aws.irsa.roleArn=arn:aws:iam::ACCOUNT:role/llmgate
-```
-
-**Air-gapped / on-prem** — no cloud calls
-```bash
-docker compose -f docker-compose.airgap.yaml up
-```
-
----
-
-## Why not LiteLLM?
-
-LiteLLM is excellent for routing between cloud providers.
-LLMGate does something different.
-
-| | LiteLLM | LLMGate |
-|-|:-------:|:-------:|
-| Multi-provider routing | ✅ | ✅ |
-| OpenAI-compatible API | ✅ | ✅ |
-| PII redaction before cloud | ❌ | ✅ |
-| Context rehydration | ❌ | ✅ |
-| Policy-as-code routing | ❌ | ✅ |
-| Air-gapped deployment | ❌ | ✅ |
-| Production Helm chart | Partial | ✅ |
-| GitOps-ready | ❌ | ✅ |
-
-LLMGate uses LiteLLM internally for provider abstraction.
-It adds the privacy and compliance layer on top.
-
----
-
-## Stack
-
-| Component | Role |
-|-----------|------|
-| FastAPI | Gateway and API layer |
-| LiteLLM | Provider abstraction (Ollama, Claude, Bedrock) |
-| Ollama | Local model serving |
-| Presidio | PII detection and redaction |
-| OPA | Policy-as-code routing decisions |
-| OpenTelemetry | Distributed tracing |
-| Prometheus + Grafana | Metrics and dashboards |
+| Component | Technology |
+|-----------|------------|
+| Gateway API | Python + FastAPI |
+| Local LLM runtime | Ollama |
+| Local LLM model | Qwen2.5-Coder 7B |
+| Cloud LLM client | LiteLLM |
+| Cloud provider | Anthropic Claude |
+| PII redaction | Microsoft Presidio |
+| Database | PostgreSQL + pgvector |
+| Session buffer | Redis |
+| Infrastructure | Terraform (AWS EC2) |
 
 ---
 
 ## Roadmap
 
-**v0.1 — Core gateway**
-- [x] OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/healthz`)
-- [x] Local routing via Ollama
-- [x] Cloud routing via Claude
-- [x] Docker Compose quickstart
+V1.0 → V1.1 → V1.2 → V1.3 → V1.4 → V2.0 → V3.0
 
-**v0.2 — Privacy layer**
-- [ ] PII detection with Presidio
-- [ ] Redaction before cloud calls
-- [ ] Context rehydration after cloud response
-
-**v0.3 — Policy and control**
-- [ ] OPA policy-as-code routing
-- [ ] Request blocking rules
-- [ ] Audit log
-
-**v0.4 — Production**
-- [ ] Kubernetes Helm chart
-- [ ] IRSA support for AWS
-- [ ] Air-gapped deployment mode
-- [ ] OpenTelemetry tracing
-- [ ] Prometheus metrics + Grafana dashboard
-- [ ] ArgoCD GitOps manifests
+For the full milestone plan, success criteria, and tech stack rationale, see [PROJECT.md](PROJECT.md).
 
 ---
 
 ## Contributing
 
-LLMGate is early-stage. Issues, ideas, and pull requests are welcome.
+LLMGate is open source. See [PROJECT.md](PROJECT.md) for the milestone structure and `CONTRIBUTING.md` for the PR process.
 
-If you work in a regulated environment and have requirements this doesn't cover — open an issue. Real use cases shape the roadmap.
+If you work in a regulated environment and have requirements not covered here — open an issue. Real use cases shape the roadmap.
 
 ---
 

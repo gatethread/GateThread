@@ -1,0 +1,36 @@
+# LLM working context — not for public contributors
+.claude/
+
+# Developer config (contains API keys and secrets)
+config.yaml
+.env
+*.env
+
+# TLS certificates and private keys
+*.pem
+*.key
+*.crt
+
+# Terraform state and sensitive variable files
+deploy/aws/terraform.tfstate
+deploy/aws/terraform.tfstate.backup
+deploy/aws/.terraform/
+deploy/aws/terraform.tfvars
+**/.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+Thumbs.db
