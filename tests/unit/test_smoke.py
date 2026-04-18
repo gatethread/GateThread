@@ -18,12 +18,12 @@ def test_app_package_is_importable() -> None:
     """
     import app
     import app.api
-    import app.routing
-    import app.redaction
-    import app.memory
-    import app.storage
-    import app.background
     import app.audit
+    import app.background
+    import app.memory
+    import app.redaction
+    import app.routing
+    import app.storage
 
     # If we get here without an ImportError, all packages are correctly structured
     assert app is not None
