@@ -19,6 +19,11 @@ dependencies = [
     # LLM routing — cloud provider abstraction
     "litellm>=1.40.0",
 
+    # Security override: aiohttp is a transitive dependency of litellm.
+    # 3.13.3 has 10 known CVEs (CVE-2026-34513 through CVE-2026-34525).
+    # Pinning to >=3.13.4 forces the patched version until litellm updates its own constraint.
+    "aiohttp>=3.13.4",
+
     # Database — PostgreSQL async driver and ORM
     "asyncpg>=0.29.0",
     "sqlmodel>=0.0.18",        # SQLAlchemy + Pydantic in one
