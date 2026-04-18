@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Self-hosted AI gateway with local routing, redaction, and cross-session memory"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 
 dependencies = [
     # HTTP framework and server
@@ -18,6 +18,11 @@ dependencies = [
 
     # LLM routing — cloud provider abstraction
     "litellm>=1.40.0",
+
+    # Security override: aiohttp is a transitive dependency of litellm.
+    # 3.13.3 has 10 known CVEs (CVE-2026-34513 through CVE-2026-34525).
+    # Pinning to >=3.13.4 forces the patched version until litellm updates its own constraint.
+    "aiohttp>=3.13.4",
 
     # Database — PostgreSQL async driver and ORM
     "asyncpg>=0.29.0",
@@ -44,6 +49,11 @@ dev = [
     "httpx>=0.27.0",        # Also used in tests to call the FastAPI app directly
     "pip-audit>=2.7.0",     # Scans dependencies for known CVEs — runs in CI
 ]
+
+[tool.setuptools.packages.find]
+# Only include the app/ package — not deploy/, benchmarks/, or tests/
+# Without this, setuptools finds multiple top-level folders and refuses to build
+include = ["app*"]
 
 [project.scripts]
 llmgate = "app.cli:main"   # Entrypoint for `llmgate start/stop/status` CLI (Issue #15)

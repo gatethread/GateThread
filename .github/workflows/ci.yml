@@ -101,9 +101,10 @@ jobs:
       # 8. pip-audit — dependency security scan
       # -----------------------------------------------------------------------
       # Checks every installed package against the PyPI advisory database (OSV).
-      # `--strict` means: fail on any vulnerability severity, not just critical.
+      # `--skip-editable` skips our own local `llmgate` package (not on PyPI).
+      # pip-audit exits non-zero if it finds any known vulnerability — CI fails.
       # `--fix` is NOT used here — we want CI to flag the issue, not silently patch it.
       # If a vulnerability is found: update the package version in pyproject.toml
       # and open a PR with the fix.
       - name: Security audit (pip-audit)
-        run: pip-audit --strict
+        run: pip-audit --skip-editable
