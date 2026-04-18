@@ -1,0 +1,131 @@
+# LLMGate Configuration
+#
+# How to use:
+#   cp config.example.yaml config.yaml
+#   Edit config.yaml with your actual values
+#
+# IMPORTANT: config.yaml is gitignored. Never commit it.
+# All sensitive values must be set here or as environment variables.
+# Environment variables take precedence over values in this file.
+
+# ---------------------------------------------------------------------------
+# Gateway
+# ---------------------------------------------------------------------------
+gateway:
+  # API key that clients (Cline, Continue, etc.) use to authenticate.
+  # Set this to a long random string. Generate one with:
+  #   python -c "import secrets; print(secrets.token_hex(32))"
+  api_key: "REPLACE_ME"
+
+  # Port the FastAPI server listens on locally.
+  port: 8000
+
+  # Set to true in production to require HTTPS. False for local dev.
+  require_https: false
+
+# ---------------------------------------------------------------------------
+# Local LLM — Ollama
+# ---------------------------------------------------------------------------
+ollama:
+  # Base URL of the Ollama server. Default works if running locally.
+  base_url: "http://localhost:11434"
+
+  # The model used for routing decisions and local responses.
+  # Must be pulled with: ollama pull qwen2.5-coder:7b
+  routing_model: "qwen2.5-coder:7b"
+
+  # The model used for session compression (can be same as routing_model).
+  compression_model: "qwen2.5-coder:7b"
+
+  # The embedding model used for memory storage and retrieval.
+  # Must be pulled with: ollama pull nomic-embed-text
+  embedding_model: "nomic-embed-text"
+
+  # Maximum seconds to wait for Ollama to respond before giving up.
+  timeout_seconds: 30
+
+# ---------------------------------------------------------------------------
+# Cloud LLM — Claude via LiteLLM
+# ---------------------------------------------------------------------------
+cloud:
+  # Anthropic API key. Get yours at console.anthropic.com.
+  # Can also be set via the ANTHROPIC_API_KEY environment variable.
+  anthropic_api_key: "REPLACE_ME"
+
+  # The Claude model to route cloud requests to.
+  model: "claude-sonnet-4-6"
+
+# ---------------------------------------------------------------------------
+# PostgreSQL (primary database — sessions, memory, audit log)
+# ---------------------------------------------------------------------------
+postgres:
+  # Full connection URL. For local dev this matches docker-compose.yml.
+  # Format: postgresql+asyncpg://user:password@host:port/dbname
+  url: "postgresql+asyncpg://llmgate:llmgate@localhost:5432/llmgate"
+
+  # Maximum number of database connections to keep open at once.
+  # 10 is a safe default for a single-developer instance.
+  pool_size: 10
+
+# ---------------------------------------------------------------------------
+# Redis (session transcript buffer — ephemeral, never hits disk)
+# ---------------------------------------------------------------------------
+redis:
+  # Redis connection URL. For local dev this matches docker-compose.yml.
+  url: "redis://localhost:6379/0"
+
+  # How long (in seconds) to keep a session transcript in Redis before
+  # expiring it. 48 hours = 172800 seconds.
+  transcript_ttl_seconds: 172800  # 48 hours
+
+  # How long (in seconds) to keep a redaction map in Redis.
+  # Short TTL — it is deleted immediately after use, this is just a fallback.
+  redaction_map_ttl_seconds: 3600  # 1 hour
+
+# ---------------------------------------------------------------------------
+# Redaction (Presidio)
+# ---------------------------------------------------------------------------
+redaction:
+  # Minimum confidence score (0.0 to 1.0) for Presidio to flag an entity.
+  # Higher = fewer false positives, but may miss some real PII.
+  # Lower = catches more, but may redact things that aren't sensitive.
+  threshold: 0.7
+
+  # Entity types to detect and redact. These map to Presidio entity names.
+  # Full list: https://microsoft.github.io/presidio/supported_entities/
+  entities:
+    - PERSON
+    - EMAIL_ADDRESS
+    - PHONE_NUMBER
+    - URL
+    - CREDIT_CARD
+    - CRYPTO
+    - IP_ADDRESS
+    - US_SSN
+    - API_KEY          # Custom recognizer (defined in app/redaction/patterns.py)
+    - INTERNAL_URL     # Custom recognizer (defined in app/redaction/patterns.py)
+
+# ---------------------------------------------------------------------------
+# Session compression (background task)
+# ---------------------------------------------------------------------------
+compression:
+  # How often (in seconds) the idle detector polls session last_active_at.
+  poll_interval_seconds: 60
+
+  # How many seconds of inactivity before a session is considered idle
+  # and compression is triggered. 5 minutes = 300 seconds.
+  idle_threshold_seconds: 300  # 5 minutes
+
+  # Maximum number of fact chunks to extract per session.
+  max_chunks: 15
+
+# ---------------------------------------------------------------------------
+# Data retention
+# ---------------------------------------------------------------------------
+retention:
+  # How many days to keep compressed memory chunks before deleting them.
+  memory_chunks_days: 90
+
+  # Audit records cannot be deleted via the API — admin only.
+  # This value is informational only (enforced at the database level).
+  audit_log_days: 365

@@ -1,0 +1,95 @@
+[project]
+name = "llmgate"
+version = "0.1.0"
+description = "Self-hosted AI gateway with local routing, redaction, and cross-session memory"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+dependencies = [
+    # HTTP framework and server
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+
+    # PII and credential redaction
+    "presidio-analyzer>=2.2.354",
+    "presidio-anonymizer>=2.2.354",
+    "spacy>=3.7.0",            # NLP backend required by Presidio
+
+    # LLM routing — cloud provider abstraction
+    "litellm>=1.40.0",
+
+    # Database — PostgreSQL async driver and ORM
+    "asyncpg>=0.29.0",
+    "sqlmodel>=0.0.18",        # SQLAlchemy + Pydantic in one
+    "pgvector>=0.2.5",         # Vector column type for similarity search
+    "alembic>=1.13.0",         # Schema migrations — never write manual SQL
+
+    # Session buffer — Redis
+    "redis[hiredis]>=5.0.0",   # hiredis is a fast C parser for Redis responses
+
+    # Configuration loading
+    "pydantic-settings>=2.3.0",  # Typed config from env vars + YAML
+    "pyyaml>=6.0.1",             # YAML parser for config.yaml
+
+    # HTTP client — for calling Ollama's local API
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.0",          # Linter + formatter (replaces flake8, black, isort)
+    "pytest>=8.2.0",        # Test runner
+    "pytest-asyncio>=0.23.0",  # Async test support — all our code uses asyncio
+    "httpx>=0.27.0",        # Also used in tests to call the FastAPI app directly
+    "pip-audit>=2.7.0",     # Scans dependencies for known CVEs — runs in CI
+]
+
+[project.scripts]
+llmgate = "app.cli:main"   # Entrypoint for `llmgate start/stop/status` CLI (Issue #15)
+
+# ---------------------------------------------------------------------------
+# Ruff — linter and formatter
+# ---------------------------------------------------------------------------
+# Ruff replaces flake8, black, and isort in a single tool. It is 10-100x
+# faster than running them separately because it is written in Rust.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"   # Tell ruff we are on Python 3.11+
+line-length = 100           # Max line length before ruff complains
+
+[tool.ruff.lint]
+# Rule sets we enforce:
+#   E, W  — pycodestyle errors and warnings (basic style)
+#   F     — pyflakes (unused imports, undefined names)
+#   I     — isort (import ordering)
+#   UP    — pyupgrade (modernize syntax for Python 3.11)
+#   B     — flake8-bugbear (catches common bugs and design issues)
+#   S     — flake8-bandit (security checks — e.g. hardcoded passwords)
+select = ["E", "W", "F", "I", "UP", "B", "S"]
+
+# Rules we intentionally ignore:
+#   S101 — bandit flags `assert` statements, but they're fine in tests
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+# In test files, relax security checks — test code is never in production
+"tests/**/*.py" = ["S", "B"]
+
+[tool.ruff.format]
+# Use double quotes for strings — consistent with most Python projects
+quote-style = "double"
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+# Tell pytest where to find tests
+testpaths = ["tests"]
+
+# asyncio_mode = "auto" means every async test function is automatically
+# treated as an async test — no need to decorate each one with @pytest.mark.asyncio
+asyncio_mode = "auto"
+
+# Show extra test summary info: failed, errors, skipped, warnings
+addopts = "-v --tb=short"

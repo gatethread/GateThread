@@ -1,0 +1,80 @@
+# LLMGate — Local Development Stack
+#
+# Starts PostgreSQL (with pgvector) and Redis.
+# The FastAPI app is NOT run here — start it separately with:
+#   uvicorn app.main:app --reload
+#
+# Usage:
+#   docker compose up -d       # start in background
+#   docker compose down        # stop and remove containers (data persists in volumes)
+#   docker compose down -v     # stop and delete all data (full reset)
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL + pgvector
+  # Primary database: sessions, memory chunks, audit log, vector embeddings
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: ankane/pgvector:v0.7.0   # PostgreSQL 16 with pgvector pre-installed
+    container_name: llmgate-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: llmgate
+      POSTGRES_USER: llmgate
+      POSTGRES_PASSWORD: llmgate  # Local dev only — never use this in production
+
+    ports:
+      # Expose PostgreSQL on localhost:5432 so the app and migrations can connect.
+      # The app connects using: postgresql+asyncpg://llmgate:llmgate@localhost:5432/llmgate
+      - "127.0.0.1:5432:5432"     # Bound to 127.0.0.1 — not accessible from outside the machine
+
+    volumes:
+      # Named volume: data survives docker compose down / up cycles
+      - pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      # pg_isready checks if PostgreSQL is accepting connections — not just "process started"
+      # This prevents a race condition where our app connects before the DB is ready
+      test: ["CMD-SHELL", "pg_isready -U llmgate -d llmgate"]
+      interval: 5s     # Check every 5 seconds
+      timeout: 5s      # Fail if no response within 5 seconds
+      retries: 10      # Give up after 10 failures (50 seconds total)
+      start_period: 10s  # Don't start checking for 10 seconds after container starts
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # Session transcript buffer — ephemeral by design, no disk persistence
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine          # Alpine = minimal image (~30MB vs ~100MB for full image)
+    container_name: llmgate-redis
+    restart: unless-stopped
+
+    ports:
+      # Expose Redis on localhost:6379
+      - "127.0.0.1:6379:6379"     # Bound to 127.0.0.1 — not accessible from outside
+
+    command: >
+      redis-server
+      --save ""           # Disable RDB snapshots — no writing session data to disk
+      --appendonly no     # Disable AOF log — no writing session data to disk
+      --maxmemory 512mb   # Hard cap — Redis will evict keys if it hits this limit
+      --maxmemory-policy allkeys-lru  # Eviction policy: remove least-recently-used keys first
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]  # redis-cli ping returns PONG if Redis is alive
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  pgdata:
+    # This named volume is managed by Docker. Data lives at:
+    #   /var/lib/docker/volumes/llmgate_pgdata/_data (on Linux/Mac)
+    # Run `docker compose down -v` to delete it (full reset).

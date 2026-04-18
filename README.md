@@ -140,6 +140,68 @@ curl https://<your-gateway-url>/v1/chat/completions \
 
 ---
 
+## Local Development
+
+Run the full stack locally without AWS. You need Docker, Python 3.11+, and Ollama.
+
+### 1. Install dependencies
+
+```bash
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+```
+
+### 2. Configure
+
+```bash
+cp config.example.yaml config.yaml
+# Edit config.yaml — set gateway.api_key and cloud.anthropic_api_key at minimum
+```
+
+### 3. Start PostgreSQL and Redis
+
+```bash
+docker compose up -d
+```
+
+Wait for both services to show `healthy`:
+
+```bash
+docker compose ps
+```
+
+### 4. Pull local models
+
+```bash
+ollama pull qwen2.5-coder:7b   # routing and local responses
+ollama pull nomic-embed-text    # memory embeddings
+```
+
+### 5. Run migrations
+
+```bash
+alembic upgrade head
+```
+
+### 6. Start the gateway
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+The gateway is now available at `http://localhost:8000`. Connect your editor
+using `http://localhost:8000/v1` as the base URL.
+
+### Running tests
+
+```bash
+pytest          # full suite
+ruff check .    # lint check
+```
+
+---
+
 ## Tech Stack
 
 | Component | Technology |
