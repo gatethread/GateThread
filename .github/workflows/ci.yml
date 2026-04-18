@@ -61,7 +61,7 @@ jobs:
       # 4. Install dependencies
       # -----------------------------------------------------------------------
       # `pip install -e ".[dev]"` installs:
-      #   - The llmgate package itself (editable mode)
+      #   - The GateThread package itself (editable mode)
       #   - All runtime dependencies from [project.dependencies]
       #   - All dev dependencies from [project.optional-dependencies.dev]
       #     including ruff, pytest, pytest-asyncio, and pip-audit
@@ -101,7 +101,7 @@ jobs:
       # 8. pip-audit — dependency security scan
       # -----------------------------------------------------------------------
       # Checks every installed package against the PyPI advisory database (OSV).
-      # `--skip-editable` skips our own local `llmgate` package (not on PyPI).
+      # `--skip-editable` skips our own local `GateThread` package (not on PyPI).
       # pip-audit exits non-zero if it finds any known vulnerability — CI fails.
       # `--fix` is NOT used here — we want CI to flag the issue, not silently patch it.
       # If a vulnerability is found: update the package version in pyproject.toml

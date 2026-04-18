@@ -1,4 +1,4 @@
-# LLMGate — Local Development Stack
+# GateThread — Local Development Stack
 #
 # Starts PostgreSQL (with pgvector) and Redis.
 # The FastAPI app is NOT run here — start it separately with:
@@ -17,17 +17,17 @@ services:
   # ---------------------------------------------------------------------------
   postgres:
     image: ankane/pgvector:v0.7.0   # PostgreSQL 16 with pgvector pre-installed
-    container_name: llmgate-postgres
+    container_name: GateThread-postgres
     restart: unless-stopped
 
     environment:
-      POSTGRES_DB: llmgate
-      POSTGRES_USER: llmgate
-      POSTGRES_PASSWORD: llmgate  # Local dev only — never use this in production
+      POSTGRES_DB: GateThread
+      POSTGRES_USER: GateThread
+      POSTGRES_PASSWORD: GateThread  # Local dev only — never use this in production
 
     ports:
       # Expose PostgreSQL on localhost:5432 so the app and migrations can connect.
-      # The app connects using: postgresql+asyncpg://llmgate:llmgate@localhost:5432/llmgate
+      # The app connects using: postgresql+asyncpg://GateThread:GateThread@localhost:5432/GateThread
       - "127.0.0.1:5432:5432"     # Bound to 127.0.0.1 — not accessible from outside the machine
 
     volumes:
@@ -37,7 +37,7 @@ services:
     healthcheck:
       # pg_isready checks if PostgreSQL is accepting connections — not just "process started"
       # This prevents a race condition where our app connects before the DB is ready
-      test: ["CMD-SHELL", "pg_isready -U llmgate -d llmgate"]
+      test: ["CMD-SHELL", "pg_isready -U GateThread -d GateThread"]
       interval: 5s     # Check every 5 seconds
       timeout: 5s      # Fail if no response within 5 seconds
       retries: 10      # Give up after 10 failures (50 seconds total)
@@ -49,7 +49,7 @@ services:
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine          # Alpine = minimal image (~30MB vs ~100MB for full image)
-    container_name: llmgate-redis
+    container_name: GateThread-redis
     restart: unless-stopped
 
     ports:
@@ -76,5 +76,5 @@ services:
 volumes:
   pgdata:
     # This named volume is managed by Docker. Data lives at:
-    #   /var/lib/docker/volumes/llmgate_pgdata/_data (on Linux/Mac)
+    #   /var/lib/docker/volumes/GateThread_pgdata/_data (on Linux/Mac)
     # Run `docker compose down -v` to delete it (full reset).

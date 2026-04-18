@@ -39,7 +39,7 @@ def test_python_version_is_311_or_higher() -> None:
 
     major, minor = sys.version_info.major, sys.version_info.minor
     assert (major, minor) >= (3, 11), (
-        f"LLMGate requires Python 3.11+. "
+        f"GateThread requires Python 3.11+. "
         f"You are running Python {major}.{minor}. "
         f"Check your virtual environment or pyenv configuration."
     )

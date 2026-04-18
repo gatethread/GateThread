@@ -1,4 +1,4 @@
-# LLMGate Configuration
+# GateThread Configuration
 #
 # How to use:
 #   cp config.example.yaml config.yaml
@@ -61,7 +61,7 @@ cloud:
 postgres:
   # Full connection URL. For local dev this matches docker-compose.yml.
   # Format: postgresql+asyncpg://user:password@host:port/dbname
-  url: "postgresql+asyncpg://llmgate:llmgate@localhost:5432/llmgate"
+  url: "postgresql+asyncpg://GateThread:GateThread@localhost:5432/GateThread"
 
   # Maximum number of database connections to keep open at once.
   # 10 is a safe default for a single-developer instance.
