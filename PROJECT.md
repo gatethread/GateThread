@@ -1,4 +1,4 @@
-# LLMGate — Project Definition
+# GateThread — Project Definition
 
 > A self-hosted AI gateway for engineering teams that need privacy, auditability, and intelligent routing — without giving up model quality.
 
@@ -12,15 +12,15 @@ Every engineering team that adopts AI tooling faces the same unresolved tension:
 - Local models are private — but they can't match cloud model quality
 - There is no middle layer that makes intelligent decisions, protects sensitive data, and remembers context across sessions
 
-Teams either accept the risk or block AI tools entirely. LLMGate is the third option.
+Teams either accept the risk or block AI tools entirely. GateThread is the third option.
 
 ---
 
-## What LLMGate Is
+## What GateThread Is
 
-LLMGate is a self-hosted AI gateway that runs on your own infrastructure. Every prompt from your editor passes through it. A local model inspects each prompt and decides what happens next: answer locally, route to a cloud model with sensitive data redacted, or block the request entirely.
+GateThread is a self-hosted AI gateway that runs on your own infrastructure. Every prompt from your editor passes through it. A local model inspects each prompt and decides what happens next: answer locally, route to a cloud model with sensitive data redacted, or block the request entirely.
 
-When your session ends, LLMGate compresses and organizes what was discussed into structured facts. The next time you work on something related, that context is retrieved automatically — cheap, precise, and immediately useful.
+When your session ends, GateThread compresses and organizes what was discussed into structured facts. The next time you work on something related, that context is retrieved automatically — cheap, precise, and immediately useful.
 
 Every decision is logged. Nothing is a black box.
 
@@ -28,9 +28,9 @@ Every decision is logged. Nothing is a black box.
 
 ## How It Differs From Existing Tools
 
-There are good tools for routing between cloud providers. LLMGate does something different.
+There are good tools for routing between cloud providers. GateThread does something different.
 
-| | LiteLLM | Portkey | Helicone | LLMGate |
+| | LiteLLM | Portkey | Helicone | GateThread |
 |-|:-------:|:-------:|:--------:|:-------:|
 | Routes between cloud providers | ✅ | ✅ | ❌ | ✅ |
 | Local model as first responder | ❌ | ❌ | ❌ | ✅ |
@@ -41,7 +41,7 @@ There are good tools for routing between cloud providers. LLMGate does something
 | Audit log with redaction record | ❌ | Partial | ✅ | ✅ |
 | Self-hosted, no SaaS dependency | Partial | ❌ | ❌ | ✅ |
 
-LiteLLM handles the provider abstraction layer well. LLMGate uses it internally and builds the privacy and intelligence layer on top.
+LiteLLM handles the provider abstraction layer well. GateThread uses it internally and builds the privacy and intelligence layer on top.
 
 ---
 
@@ -122,12 +122,12 @@ No prompt content or code is stored in the audit log — only metadata. Queryabl
 - AWS credentials managed via IAM roles — no hardcoded keys anywhere
 - EC2 security group: only port 443 open to the developer's IP
 
-### 11. Developer Interface — Cline + LLMGate
-LLMGate does not ship its own UI in V1. Developers use **Cline** (VS Code extension) pointed at the LLMGate gateway. Cline provides the chat panel, file reading, file editing, and terminal access — the same experience as Claude Code. LLMGate provides the intelligence, privacy, and memory underneath.
+### 11. Developer Interface — Cline + GateThread
+GateThread does not ship its own UI in V1. Developers use **Cline** (VS Code extension) pointed at the GateThread gateway. Cline provides the chat panel, file reading, file editing, and terminal access — the same experience as Claude Code. GateThread provides the intelligence, privacy, and memory underneath.
 
 Setup takes under a minute:
 ```bash
-llmgate start        # starts the gateway on AWS, prints connection details
+GateThread start        # starts the gateway on AWS, prints connection details
 ```
 Paste the output into Cline's settings. Done.
 
@@ -156,7 +156,7 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 ## Roadmap
 
 ### V1.0 — Foundation
-*Goal: One developer can replace their direct Claude/GPT setup with LLMGate and lose nothing — while gaining privacy, memory, and a full audit trail.*
+*Goal: One developer can replace their direct Claude/GPT setup with GateThread and lose nothing — while gaining privacy, memory, and a full audit trail.*
 
 **Success criteria:**
 - Routing decision latency under 5 seconds on CPU
@@ -181,7 +181,7 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 ---
 
 ### V1.1 — Multi-Developer
-*Goal: A team of up to 5 developers shares one LLMGate instance with full session and audit isolation between them.*
+*Goal: A team of up to 5 developers shares one GateThread instance with full session and audit isolation between them.*
 
 **Success criteria:**
 - No session data visible across developer accounts
@@ -197,7 +197,7 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 ---
 
 ### V1.2 — Multi-Provider
-*Goal: LLMGate can route to more than one cloud provider. Best model for the task, not just the default.*
+*Goal: GateThread can route to more than one cloud provider. Best model for the task, not just the default.*
 
 **Success criteria:**
 - A prompt can be routed to Claude or GPT-4o based on configurable criteria
@@ -231,7 +231,7 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 ---
 
 ### V2.0 — Team Scale
-*Goal: LLMGate is production infrastructure for an engineering organization.*
+*Goal: GateThread is production infrastructure for an engineering organization.*
 
 **Features:**
 - [ ] Admin controls and developer management
@@ -244,27 +244,27 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 ---
 
 ### V3.0 — Native Editor Experience
-*Goal: LLMGate ships its own VS Code extension — full control over the interface, branding, and UX. No dependency on third-party editors.*
+*Goal: GateThread ships its own VS Code extension — full control over the interface, branding, and UX. No dependency on third-party editors.*
 
 **Features:**
 - [ ] VS Code extension with native chat panel
 - [ ] Direct file access and editing from the extension
-- [ ] LLMGate-specific UX (session history browser, redaction visibility, audit log inline)
+- [ ] GateThread-specific UX (session history browser, redaction visibility, audit log inline)
 
 ---
 
 ## Non-Goals
 
-These are explicit decisions about what LLMGate will not do, and why.
+These are explicit decisions about what GateThread will not do, and why.
 
 **Fine-tuning or training models on your codebase.**
-Fine-tuning requires labeled data, significant compute, and ongoing maintenance as the codebase evolves. LLMGate achieves personalization through session memory and context retrieval — no training pipeline needed.
+Fine-tuning requires labeled data, significant compute, and ongoing maintenance as the codebase evolves. GateThread achieves personalization through session memory and context retrieval — no training pipeline needed.
 
 **Storing full conversation history.**
 Raw transcripts grow without bound and are expensive to search. Compression trades completeness for efficiency — a structured fact is more useful in future context than a 3,000 token conversation log.
 
 **A hosted SaaS version.**
-LLMGate's core value is that your data stays on your infrastructure. A hosted version would contradict that entirely.
+GateThread's core value is that your data stays on your infrastructure. A hosted version would contradict that entirely.
 
 **A custom editor plugin before V3.0.**
 Cline covers the V1 use case completely. Building a custom extension before the gateway itself is proven would be building in the wrong order. It is on the roadmap for V3.0 — not a permanent non-goal.
@@ -273,7 +273,7 @@ Cline covers the V1 use case completely. Building a custom extension before the 
 
 ## Contributing
 
-LLMGate is open source and in active development.
+GateThread is open source and in active development.
 
 **To contribute:**
 1. Check the open issues — work is organized by milestone

@@ -1,5 +1,5 @@
 [project]
-name = "llmgate"
+name = "GateThread"
 version = "0.1.0"
 description = "Self-hosted AI gateway with local routing, redaction, and cross-session memory"
 readme = "README.md"
@@ -56,7 +56,7 @@ dev = [
 include = ["app*"]
 
 [project.scripts]
-llmgate = "app.cli:main"   # Entrypoint for `llmgate start/stop/status` CLI (Issue #15)
+GateThread = "app.cli:main"   # Entrypoint for `GateThread start/stop/status` CLI (Issue #15)
 
 # ---------------------------------------------------------------------------
 # Ruff — linter and formatter

@@ -1,4 +1,4 @@
-# LLMGate
+# GateThread
 
 > The standard for how engineering teams use AI — private, auditable, and cost-efficient.
 > One gateway. Sensitive data stays on your infrastructure. Cloud models when you need them.
@@ -13,13 +13,13 @@ Every engineering team that adopts AI tooling faces the same unresolved tension:
 - Local models are private — but they can't match cloud model quality
 - There is no middle layer that makes intelligent decisions, protects sensitive data, and remembers context across sessions
 
-Teams either accept the risk or block AI tools entirely. LLMGate is the third option.
+Teams either accept the risk or block AI tools entirely. GateThread is the third option.
 
 ---
 
 ## How It Works
 
-LLMGate is a self-hosted gateway that runs on your own infrastructure. Every prompt from your editor passes through it. A local model inspects each prompt and decides what happens next.
+GateThread is a self-hosted gateway that runs on your own infrastructure. Every prompt from your editor passes through it. A local model inspects each prompt and decides what happens next.
 
 ```
 Your Editor (Cline, Continue, Cursor, ...)
@@ -27,7 +27,7 @@ Your Editor (Cline, Continue, Cursor, ...)
               │  prompt
               ▼
      ┌────────────────────┐
-     │   LLMGate on AWS   │
+     │   GateThread on AWS   │
      │                    │
      │  Local LLM decides │
      └────────┬───────────┘
@@ -49,7 +49,7 @@ Your Editor (Cline, Continue, Cursor, ...)
          Your Editor
 ```
 
-When your session ends, LLMGate compresses what was discussed into structured facts. The next time you work on something related, that context is retrieved automatically — cheap, structured, and immediately useful.
+When your session ends, GateThread compresses what was discussed into structured facts. The next time you work on something related, that context is retrieved automatically — cheap, structured, and immediately useful.
 
 Every decision is logged. Nothing is a black box.
 
@@ -71,7 +71,7 @@ Every decision is logged. Nothing is a black box.
 
 ## Who This Is For
 
-| Use case | Why LLMGate |
+| Use case | Why GateThread |
 |----------|-------------|
 | Teams under GDPR | Customer data cannot leave your infrastructure |
 | Healthcare & finance | HIPAA, PCI-DSS, data residency requirements |
@@ -86,14 +86,14 @@ Every decision is logged. Nothing is a black box.
 **Requirements:** Terraform, AWS credentials
 
 ```bash
-git clone https://github.com/zoolaph/llmgate
-cd llmgate
+git clone https://github.com/zoolaph/GateThread
+cd GateThread
 cp config.example.yaml config.yaml
 terraform -chdir=deploy/aws init
 terraform -chdir=deploy/aws apply
 ```
 
-LLMGate will output the gateway URL. Point your editor at it.
+GateThread will output the gateway URL. Point your editor at it.
 
 **Connect your editor:**
 
@@ -103,7 +103,7 @@ LLMGate will output the gateway URL. Point your editor at it.
 ```
 Provider : OpenAI Compatible
 Base URL : https://<your-gateway-url>/v1
-API Key  : llmgate
+API Key  : GateThread
 Model    : auto
 ```
 </details>
@@ -114,11 +114,11 @@ Model    : auto
 ```json
 {
   "models": [{
-    "title": "LLMGate",
+    "title": "GateThread",
     "provider": "openai",
     "model": "auto",
     "apiBase": "https://<your-gateway-url>/v1",
-    "apiKey": "llmgate"
+    "apiKey": "GateThread"
   }]
 }
 ```
@@ -129,7 +129,7 @@ Model    : auto
 
 ```bash
 curl https://<your-gateway-url>/v1/chat/completions \
-  -H "Authorization: Bearer llmgate" \
+  -H "Authorization: Bearer GateThread" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "auto",
@@ -228,7 +228,7 @@ For the full milestone plan, success criteria, and tech stack rationale, see [PR
 
 ## Contributing
 
-LLMGate is open source. See [PROJECT.md](PROJECT.md) for the milestone structure and `CONTRIBUTING.md` for the PR process.
+GateThread is open source. See [PROJECT.md](PROJECT.md) for the milestone structure and `CONTRIBUTING.md` for the PR process.
 
 If you work in a regulated environment and have requirements not covered here — open an issue. Real use cases shape the roadmap.
 

@@ -1,4 +1,4 @@
-# Contributing to LLMGate
+# Contributing to GateThread
 
 Thank you for contributing. This document explains the development workflow,
 code standards, and PR process. Read it before opening a pull request.
@@ -19,8 +19,8 @@ code standards, and PR process. Read it before opening a pull request.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_ORG/llmgate.git
-cd llmgate
+git clone https://github.com/YOUR_ORG/GateThread.git
+cd GateThread
 ```
 
 ### 2. Create and activate a virtual environment
