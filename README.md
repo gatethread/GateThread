@@ -26,22 +26,23 @@ Your Editor (Cline, Continue, Cursor, ...)
               │
               │  prompt
               ▼
-     ┌────────────────────┐
-     │   GateThread on AWS   │
-     │                    │
-     │  Local LLM decides │
-     └────────┬───────────┘
+     ┌──────────────────────┐
+     │   GateThread on AWS  │
+     │                      │
+     │  1. Redact PII first │
+     │  2. Local LLM routes │
+     └────────┬─────────────┘
               │
    ┌──────────┼──────────┐
    │          │          │
  Local      Cloud      Block
    │          │
-   │    Redact PII first
+   │       Redacted prompt
    │          │
    │          ▼
-   │       Claude
+   │        Claude
    │          │
-   │    Restore context
+   │    Restore original values
    │          │
    └──────────┤
               │
@@ -49,7 +50,9 @@ Your Editor (Cline, Continue, Cursor, ...)
          Your Editor
 ```
 
-When your session ends, GateThread compresses what was discussed into structured facts. The next time you work on something related, that context is retrieved automatically — cheap, structured, and immediately useful.
+**Redaction happens before routing.** The local model and Claude both see only the redacted prompt. Sensitive values never leave your infrastructure.
+
+When your session ends, GateThread compresses what was discussed into a structured knowledge graph — decisions, constraints, open questions, relationships between facts. The next time you work on something related, relevant context is retrieved automatically and injected into the prompt.
 
 Every decision is logged. Nothing is a black box.
 
@@ -57,13 +60,13 @@ Every decision is logged. Nothing is a black box.
 
 ## Core Principles
 
-**Private by default.** Sensitive data never reaches a cloud provider unredacted. The local model makes the call on every prompt.
+**Private by default.** Sensitive data is redacted at the door — before routing, before the local model, before storage. One rule, applied once.
 
-**Intelligent routing.** Not every question needs Claude. Simple tasks stay local and cost nothing. Hard tasks go to the best available model.
+**Intelligent routing.** Not every question needs Claude. Simple tasks stay local and cost nothing. The routing decision is a fast classification call, not a full inference pass.
 
-**Memory that works.** Sessions are compressed into structured facts, not raw transcripts. Context is retrieved on demand — only when relevant, never as noise.
+**Memory that works.** Sessions are compressed into a knowledge graph — facts with relationships, scores that decay with time, conflicts resolved automatically. Context is retrieved on demand, ranked by recency and relevance.
 
-**Full auditability.** Every prompt is logged: who asked, where it went, what was redacted. Teams can prove compliance without guesswork.
+**Full auditability.** Every prompt is logged: who asked, where it went, what was redacted. The audit log is on a separate access path — it cannot be accessed with the same credential that controls the gateway.
 
 **Operator-grade deployment.** Infrastructure-as-code from day one. No manual setup. Repeatable across environments.
 
@@ -72,7 +75,7 @@ Every decision is logged. Nothing is a black box.
 ## Who This Is For
 
 | Use case | Why GateThread |
-|----------|-------------|
+|----------|----------------|
 | Teams under GDPR | Customer data cannot leave your infrastructure |
 | Healthcare & finance | HIPAA, PCI-DSS, data residency requirements |
 | Defense & government | Air-gapped environments, zero cloud exposure |
@@ -86,7 +89,7 @@ Every decision is logged. Nothing is a black box.
 **Requirements:** Terraform, AWS credentials
 
 ```bash
-git clone https://github.com/zoolaph/GateThread
+git clone https://github.com/gatethread/GateThread
 cd GateThread
 cp config.example.yaml config.yaml
 terraform -chdir=deploy/aws init
@@ -94,6 +97,8 @@ terraform -chdir=deploy/aws apply
 ```
 
 GateThread will output the gateway URL. Point your editor at it.
+
+> **Note on startup time:** The first `terraform apply` on a fresh instance pulls the Ollama model (~4 GB). Expect 5–10 minutes on first boot. Subsequent starts are faster once the model is cached on the EBS volume. Use `gatethread warm` to pre-load the model before your session.
 
 **Connect your editor:**
 
@@ -103,7 +108,7 @@ GateThread will output the gateway URL. Point your editor at it.
 ```
 Provider : OpenAI Compatible
 Base URL : https://<your-gateway-url>/v1
-API Key  : GateThread
+API Key  : <your-api-key from config.yaml>
 Model    : auto
 ```
 </details>
@@ -118,7 +123,7 @@ Model    : auto
     "provider": "openai",
     "model": "auto",
     "apiBase": "https://<your-gateway-url>/v1",
-    "apiKey": "GateThread"
+    "apiKey": "<your-api-key from config.yaml>"
   }]
 }
 ```
@@ -129,7 +134,7 @@ Model    : auto
 
 ```bash
 curl https://<your-gateway-url>/v1/chat/completions \
-  -H "Authorization: Bearer GateThread" \
+  -H "Authorization: Bearer <your-api-key>" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "auto",
@@ -213,14 +218,14 @@ ruff check .    # lint check
 | Cloud provider | Anthropic Claude |
 | PII redaction | Microsoft Presidio |
 | Database | PostgreSQL + pgvector |
-| Session buffer | Redis |
+| Session buffer | Redis (ephemeral, no disk persistence) |
 | Infrastructure | Terraform (AWS EC2) |
 
 ---
 
 ## Roadmap
 
-V1.0 → V1.1 → V1.2 → V1.3 → V1.4 → V2.0 → V3.0
+V1.0 → V1.1 → V1.2 → V1.3 → V1.4 → V1.5 → V2.0 → V3.0
 
 For the full milestone plan, success criteria, and tech stack rationale, see [PROJECT.md](PROJECT.md).
 
