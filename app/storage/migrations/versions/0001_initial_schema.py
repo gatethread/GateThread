@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-04-22
 
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -46,9 +47,7 @@ def upgrade() -> None:
         sa.Column("session_id", sa.Integer(), nullable=False),
         sa.Column(
             "chunk_type",
-            sa.Enum(
-                "fact", "decision", "code_reference", "error", "summary", name="chunktype"
-            ),
+            sa.Enum("fact", "decision", "code_reference", "error", "summary", name="chunktype"),
             nullable=False,
         ),
         sa.Column("summary_text", sqlmodel.AutoString(), nullable=False),

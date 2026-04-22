@@ -34,8 +34,7 @@ def _load_db_url() -> str:
             return url
 
     raise RuntimeError(
-        "Database URL not found. "
-        "Set DATABASE_URL env var or add postgres.url to config.yaml."
+        "Database URL not found. Set DATABASE_URL env var or add postgres.url to config.yaml."
     )
 
 
