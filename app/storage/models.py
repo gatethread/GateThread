@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import enum
 from datetime import datetime
+import enum
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column
