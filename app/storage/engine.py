@@ -9,7 +9,7 @@ from sqlmodel import SQLModel
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
 
-_engine: "AsyncEngine | None" = None
+_engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
