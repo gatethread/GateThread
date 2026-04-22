@@ -16,7 +16,7 @@ services:
   # Primary database: sessions, memory chunks, audit log, vector embeddings
   # ---------------------------------------------------------------------------
   postgres:
-    image: ankane/pgvector:v0.7.0   # PostgreSQL 16 with pgvector pre-installed
+    image: pgvector/pgvector:0.8.0-pg16   # PostgreSQL 16 with pgvector 0.8.0 (official image)
     container_name: GateThread-postgres
     restart: unless-stopped
 
@@ -56,12 +56,16 @@ services:
       # Expose Redis on localhost:6379
       - "127.0.0.1:6379:6379"     # Bound to 127.0.0.1 — not accessible from outside
 
-    command: >
-      redis-server
-      --save ""           # Disable RDB snapshots — no writing session data to disk
-      --appendonly no     # Disable AOF log — no writing session data to disk
-      --maxmemory 512mb   # Hard cap — Redis will evict keys if it hits this limit
-      --maxmemory-policy allkeys-lru  # Eviction policy: remove least-recently-used keys first
+    command:
+      - redis-server
+      - "--save"
+      - ""
+      - "--appendonly"
+      - "no"
+      - "--maxmemory"
+      - "512mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
 
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]  # redis-cli ping returns PONG if Redis is alive

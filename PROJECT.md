@@ -1,18 +1,19 @@
 # GateThread — Project Definition
 
-> A self-hosted AI gateway for engineering teams that need privacy, auditability, and intelligent routing — without giving up model quality.
+> A self-hosted AI gateway for engineering teams that want smarter routing, persistent session context, and lower cloud costs — without giving up model quality.
 
 ---
 
 ## The Problem
 
-Every engineering team that adopts AI tooling faces the same unresolved tension:
+Every developer using AI tools daily runs into the same frustrations:
 
-- The best models are cloud-hosted — your code and data leave your infrastructure
-- Local models are private — but they can't match cloud model quality
-- There is no middle layer that makes intelligent decisions, protects sensitive data, and remembers context across sessions
+- Every new session starts cold — you re-explain your architecture, your constraints, the decision you made last week
+- Simple questions burn the same token budget as hard ones — you end up rationing
+- Local models are free but can't match cloud quality — cloud models are capable but expensive
+- There is no layer that routes intelligently, compresses context, and remembers what matters across sessions
 
-Teams either accept the risk or block AI tools entirely. GateThread is the third option.
+You either accept the inefficiency or start limiting how much you use AI. GateThread is the third option.
 
 ---
 
@@ -20,13 +21,15 @@ Teams either accept the risk or block AI tools entirely. GateThread is the third
 
 GateThread is a self-hosted AI gateway that runs on your own infrastructure. Every prompt from your editor passes through it.
 
-**Redaction happens first — before anything else.** The moment a prompt enters the gateway, PII and credentials are replaced with typed placeholders. The local model, the cloud model, and the session buffer all see only the redacted form. Sensitive values never leave the machine.
+**A local model decides what happens next.** Simple questions — syntax, boilerplate, lookups — are answered locally for free. Complex prompts that need stronger reasoning go to Claude. The routing call is a short structured classification prompt — not a full inference pass — to keep latency acceptable on CPU.
 
-After redaction, a local model makes a fast routing classification: answer locally, route to Claude, or block. The routing call is a short structured classification prompt — not a full inference pass — to keep latency acceptable on CPU.
+**When a prompt reaches Claude, it arrives optimized.** GateThread compresses your session history into a structured knowledge graph — facts as nodes, relationships as edges, scores that decay with time. The injected context is ranked by relevance and recency. You spend fewer tokens and get a better answer than if you'd pasted a raw transcript.
 
-When your session ends, GateThread compresses the conversation into a structured knowledge graph. Facts are nodes. Relationships between facts are edges. Scores decay over time so recent knowledge surfaces first. Contradictions are detected and resolved. The next session retrieves the relevant neighborhood of the knowledge graph automatically.
+**Your next session picks up where you left off.** The knowledge graph persists. When you start working on something related, the relevant neighborhood is retrieved and injected automatically. You never re-explain the same thing twice.
 
-Every decision is logged. Nothing is a black box.
+**Sensitive data is redacted before anything else.** PII and credentials are replaced with typed placeholders the moment a prompt enters the gateway — before routing, before the local model, before storage. Sensitive values never leave your machine.
+
+Every routing decision is logged. Nothing is a black box.
 
 ---
 
@@ -40,7 +43,9 @@ These are acknowledged tradeoffs, not oversights.
 
 **Cold start takes time.** First boot on a fresh EC2 instance requires pulling the Ollama model (~4 GB). Expect 5–10 minutes. The EBS volume retains the model across restarts. `gatethread warm` pre-loads the model so the first prompt is not slow.
 
-**Tool-gated retrieval is unreliable at 7B scale.** Asking the local model to decide when to retrieve context requires metacognitive reliability that 7B models do not consistently have. GateThread uses always-on retrieval instead: every request triggers a retrieval pass against the knowledge graph, and context is injected only when the relevance score exceeds a configurable threshold. The model never decides whether to retrieve — the system does.
+**Tool-gated retrieval is unreliable at 7B scale.** Asking the local model to decide when to retrieve context requires metacognitive reliability that 7B models do not consistently have. GateThread uses always-on retrieval instead: every request triggers a retrieval pass against stored session facts, and context is injected only when the relevance score exceeds a configurable threshold. The model never decides whether to retrieve — the system does.
+
+**V1.0 is sized for a single developer.** The `c5.2xlarge` runs the local LLM, PostgreSQL, Redis, and LiteLLM on one instance. Under single-user load this is fine. Under concurrent multi-user load, inference latency and memory pressure compound. V1.1 adds a GPU instance and moves toward team use. V2.0 adds Kubernetes for organizations that need to scale.
 
 ---
 
@@ -48,26 +53,28 @@ These are acknowledged tradeoffs, not oversights.
 
 | | LiteLLM | Portkey | Helicone | GateThread |
 |-|:-------:|:-------:|:--------:|:----------:|
-| Routes between cloud providers | ✅ | ✅ | ❌ | ✅ |
 | Local model as first responder | ❌ | ❌ | ❌ | ✅ |
-| PII redaction before cloud | ❌ | ❌ | ❌ | ✅ |
-| Data stays on your infrastructure | ❌ | ❌ | ❌ | ✅ |
+| Routes between cloud providers | ✅ | ✅ | ❌ | ✅ |
 | Session memory and compression | ❌ | ❌ | ❌ | ✅ |
 | Knowledge graph context retrieval | ❌ | ❌ | ❌ | ✅ |
+| PII redaction before cloud | ❌ | ❌ | ❌ | ✅ |
+| Data stays on your infrastructure | ❌ | ❌ | ❌ | ✅ |
 | Audit log with redaction record | ❌ | Partial | ✅ | ✅ |
 | Self-hosted, no SaaS dependency | Partial | ❌ | ❌ | ✅ |
 
-LiteLLM handles the provider abstraction layer well. GateThread uses it internally and builds the privacy and intelligence layer on top.
+LiteLLM handles the provider abstraction layer well. GateThread uses it internally and builds the routing intelligence, session memory, and privacy layer on top.
+
+> **Note:** GateThread features marked ✅ are planned or in active development. Competitors are scored against their current production state.
 
 ---
 
 ## Core Principles
 
-**Private by default.** Sensitive data is redacted at the door — before routing, before the local model, before storage. One rule, applied once, at the entry point.
-
 **Intelligent routing.** Not every question needs Claude. The routing decision is a fast structured classification, not a full inference pass. Simple tasks stay local and cost nothing.
 
-**Memory that works.** Sessions are compressed into a knowledge graph, not a flat list of facts. Relationships between facts are explicit. Scores decay with time. Contradictions are resolved by a belief revision engine. Context retrieved is always the most relevant, most recent, non-contradicted neighborhood of what the developer was working on.
+**Memory that works.** Sessions are compressed into a knowledge graph, not a flat list of facts. Relationships between facts are explicit. Scores decay with time. Contradictions are resolved by a belief revision engine. When a prompt reaches a paid model, the injected context is always the most relevant, most recent, non-contradicted neighborhood of what the developer was working on — not a raw token dump.
+
+**Private by default.** Sensitive data is redacted at the door — before routing, before the local model, before storage. One rule, applied once, at the entry point.
 
 **Full auditability.** Every prompt is logged: who asked, where it went, what was redacted. The audit log is append-only and lives on a separate access credential — it cannot be read or tampered with using the same key that controls the gateway.
 
@@ -115,14 +122,14 @@ The gateway maintains the full multi-turn conversation in Redis. All turns are a
 > **Known limitation:** The fallback session identity (`SHA256(client_ip + date)`) will produce a new session ID if the developer's IP changes mid-day (VPN reconnect, DHCP renewal). When this happens, the conversation context is lost for that session. The `X-GateThread-Client` header UUID is the reliable path and should always be configured.
 
 ### 6. Session Compression
-When the developer goes idle, the local model processes the session asynchronously. The raw transcript is compressed into structured knowledge graph nodes: decisions made, files changed, bugs fixed, architectural constraints, open questions. The number of nodes extracted scales with session length and information density — not a fixed cap.
+When the developer goes idle, the local model processes the session asynchronously. The raw transcript is compressed into a flat list of structured facts: decisions made, files changed, bugs fixed, constraints, open questions. Each fact is a short sentence (≤30 words) stored with a pgvector embedding. The number of facts extracted scales with session length — not a fixed cap.
 
-If structured extraction fails (malformed JSON, schema validation error), the system retries with a simplified prompt. If that fails, key sentences are extracted verbatim as low-confidence nodes rather than losing the session entirely. Raw transcript is deleted only after successful compression or after explicit fallback extraction.
+If structured extraction fails (malformed JSON, schema validation error), the system retries once with a simplified prompt. If that also fails, the 5 most information-dense sentences are stored verbatim. Raw transcript is deleted only after facts are confirmed written to PostgreSQL.
 
 ### 7. Always-On Context Retrieval
-Every incoming request triggers a retrieval pass against the knowledge graph. Context is injected into the prompt if and only if the top-ranked nodes exceed a configurable relevance threshold. The retrieval pipeline: embed the query → graph-augmented vector search (seed nodes via pgvector, expand via edge traversal) → rank by composite score (Bayesian posterior: similarity × recency prior) → enforce token budget → inject.
+Every incoming request triggers a retrieval pass against stored session facts. Context is injected into the prompt if and only if the top-ranked facts exceed a configurable relevance threshold. The retrieval pipeline: embed the query → pgvector similarity search → rank by `similarity × recency_weight` → enforce token budget → inject.
 
-The model never decides whether to retrieve. The system decides, based on a measurable signal.
+The model never decides whether to retrieve. The system decides, based on a measurable signal. Open questions from previous sessions are always injected regardless of score.
 
 ### 8. Audit Log
 Every prompt produces an audit record:
@@ -134,6 +141,8 @@ Every prompt produces an audit record:
 
 No prompt content or code is stored in the audit log — only metadata. The audit endpoint (`GET /v1/audit`) requires a separate admin credential, not the gateway API key. Queryable. Exportable.
 
+The append-only property must be enforced at the database level — not just in application code. The `audit_log` table must have no `UPDATE` or `DELETE` permissions granted to the application database user. A code comment is not a security control.
+
 ### 9. Data Retention and Deletion
 - Raw transcripts: deleted immediately after successful compression
 - Knowledge graph nodes: retained for 90 days by default (configurable)
@@ -144,7 +153,7 @@ No prompt content or code is stored in the audit log — only metadata. The audi
 - All traffic over HTTPS — TLS termination at the gateway
 - Gateway API key required on every endpoint except `/healthz`
 - Audit log on a separate admin credential
-- Redis and PostgreSQL bound to localhost — not exposed externally
+- Redis and PostgreSQL bound to localhost in local dev; in production (AWS), services communicate within a private VPC — not exposed to the public internet
 - AWS credentials managed via IAM roles — no hardcoded keys anywhere
 - EC2 security group: port 443 open to a configurable CIDR range (not a single IP, to handle dynamic IPs)
 - `pip audit` in CI fails on high and critical severity vulnerabilities
@@ -175,10 +184,12 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 | Cloud LLM client | LiteLLM | Unified API across providers. Claude in V1, GPT-4o in V1.2 — one config line change. |
 | Cloud provider (V1) | Anthropic Claude | Best reasoning quality for complex prompts. |
 | PII redaction | Microsoft Presidio | Mature, open source. False positives are a known tradeoff — mitigated by configurable thresholds and audit log visibility. |
-| Primary database | PostgreSQL + pgvector | Relational data + vector search + graph edges (via recursive CTEs) in one service. No separate vector DB or graph DB. |
+| Primary database | PostgreSQL + pgvector | Relational data + vector search in one service. No separate vector DB. Graph model added in V2.0. |
 | Session buffer | Redis | Ephemeral by design. Never touches disk. TTL-based expiry. |
 | Infrastructure | Terraform (AWS) | IaC from day one. Any infrastructure engineer knows it. |
-| Compute (V1) | AWS EC2 CPU-optimized (`c5.2xlarge`) | Proof of concept sizing. GPU path (`g4dn.xlarge`) defined for V1.1. |
+| Compute (V1.0 — single dev) | AWS EC2 `c5.2xlarge` (CPU) | Sized for one developer. All services fit comfortably within 16GB RAM. |
+| Compute (V1.1 — team) | AWS EC2 `g4dn.xlarge` (GPU) | GPU brings routing latency under 1 second. Supports concurrent team use. |
+| Compute (V2.0 — org scale) | Kubernetes (Helm chart) | Services split across pods. Scales horizontally. |
 
 ---
 
@@ -190,9 +201,9 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 **Success criteria:**
 - Routing classification latency under 3 seconds on CPU for prompts up to 500 tokens
 - Zero credentials or PII transmitted to Claude in a standard coding session (verified via audit log + redaction map inspection)
-- Knowledge graph context from a previous session correctly retrieved and injected in a new session on a related prompt
+- Session facts from a previous session correctly retrieved and injected in a new session on a related prompt
 - Full stack deployed via Terraform in under 15 minutes on a fresh AWS account (model download included)
-- Retrieval pipeline precision measured against a held-out eval set — must outperform raw cosine similarity baseline
+- Runs comfortably for a single developer on a `c5.2xlarge` — routing, redaction, storage, and retrieval all within memory budget
 
 **Features:**
 - [ ] OpenAI-compatible gateway API
@@ -201,8 +212,8 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 - [ ] Context rehydration after cloud response
 - [ ] Multi-turn conversation history with windowed summarization
 - [ ] Claude integration via LiteLLM
-- [ ] Async session compression to knowledge graph
-- [ ] Always-on context retrieval (graph-augmented vector search)
+- [ ] Async session compression to flat fact store
+- [ ] Always-on context retrieval (flat vector search)
 - [ ] Audit log with separate admin credential
 - [ ] Data retention and deletion API
 - [ ] Gateway security (HTTPS, IAM, configurable CIDR)
@@ -254,18 +265,8 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 
 ---
 
-### V1.5 — THREAD Benchmark
-*Goal: Publish a standardized, open benchmark for cross-session context quality — and prove GateThread wins it on real developer sessions.*
-
-**Features:**
-- [ ] THREAD benchmark design and real-session dataset (anonymized real developer logs)
-- [ ] Three-dimensional scoring: Compression Fidelity, Retrieval Precision, Answer Quality Delta
-- [ ] Public leaderboard with scores for GateThread and competing approaches
-
----
-
-### V2.0 — Team Scale
-*Goal: GateThread is production infrastructure for an engineering organization.*
+### V2.0 — Team Scale + Advanced Memory
+*Goal: GateThread is production infrastructure for an engineering organization, with a full knowledge graph memory engine replacing the V1 flat fact store.*
 
 **Features:**
 - [ ] Admin controls and developer management
@@ -273,16 +274,25 @@ The full stack deploys to AWS with a single `terraform apply`. CPU-optimized EC2
 - [ ] Kubernetes deployment (Helm chart)
 - [ ] SSO integration (SAML/OIDC)
 - [ ] Air-gapped deployment mode (zero cloud calls, for defense and government)
+- [ ] Temporal knowledge graph (nodes + typed edges, replaces flat fact store)
+- [ ] Bayesian relevance scoring with per-type time decay
+- [ ] Belief revision: AGM-compliant conflict resolution when new facts contradict old ones
+- [ ] Graph-augmented retrieval: seed search + edge traversal (replaces flat vector search)
+- [ ] Community detection: Louvain-based topic clustering
+- [ ] Adaptive memory lifecycle: per-community thresholds, stale/archived states, node consolidation
 
 ---
 
-### V3.0 — Native Editor Experience
-*Goal: GateThread ships its own VS Code extension — full control over the interface, branding, and UX.*
+### V3.0 — Native Editor Experience + THREAD Benchmark
+*Goal: GateThread ships its own VS Code extension and publishes a standardized open benchmark for cross-session context quality.*
 
 **Features:**
 - [ ] VS Code extension with native chat panel
 - [ ] Direct file access and editing from the extension
 - [ ] Session history browser, redaction visibility, audit log inline
+- [ ] THREAD benchmark design and real-session dataset (anonymized real developer logs)
+- [ ] Three-dimensional scoring: Compression Fidelity, Retrieval Precision, Answer Quality Delta
+- [ ] Public leaderboard with scores for GateThread and competing approaches
 
 ---
 
