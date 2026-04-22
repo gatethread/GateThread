@@ -24,6 +24,10 @@ dependencies = [
     # Pinning to >=3.13.4 forces the patched version until litellm updates its own constraint.
     "aiohttp>=3.13.4",
 
+    # Security override: python-dotenv is a transitive dependency of pydantic-settings.
+    # 1.0.1 has CVE-2026-28684. Pinning to >=1.2.2 forces the patched version.
+    "python-dotenv>=1.2.2",
+
     # Database — PostgreSQL async driver and ORM
     "asyncpg>=0.29.0",
     "sqlmodel>=0.0.18",        # SQLAlchemy + Pydantic in one
