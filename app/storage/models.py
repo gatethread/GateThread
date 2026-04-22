@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 import enum
+from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column
 from sqlmodel import Field, Relationship, SQLModel
-
 
 # ---------------------------------------------------------------------------
 # Enums
