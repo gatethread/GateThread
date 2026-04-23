@@ -82,7 +82,7 @@ Every routing decision is logged. Nothing is a black box.
 | Use case | Why GateThread |
 |----------|----------------|
 | Developers hitting token limits | Simple questions route local for free — cloud budget goes further |
-| Teams losing context between sessions | Knowledge graph persists across sessions — never start cold again |
+| Teams losing context between sessions | Structured facts persist across sessions — relevant context injected automatically |
 | Companies with proprietary code | Your codebase is your IP — stays on your infrastructure |
 | Teams under GDPR | Customer data cannot leave your infrastructure |
 | Healthcare & finance | HIPAA, PCI-DSS, data residency requirements |
@@ -92,19 +92,21 @@ Every routing decision is logged. Nothing is a black box.
 
 ## Quickstart
 
-**Requirements:** Terraform, AWS credentials
+**Local-first quickstart (recommended for V1):** Docker + local DB — no AWS required
 
 ```bash
 git clone https://github.com/gatethread/GateThread
 cd GateThread
 cp config.example.yaml config.yaml
-terraform -chdir=deploy/aws init
-terraform -chdir=deploy/aws apply
+docker compose up -d            # PostgreSQL+Redis local dev
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
 ```
 
-GateThread will output the gateway URL. Point your editor at it.
+> Alternatively: SQLite fallback for zero-Docker development is supported (see .claude/repo-map.md). For cloud/Terraform deploys, see deploy/ (V1.1+).
 
-> **Note on startup time:** The first `terraform apply` on a fresh instance pulls the Ollama model (~4 GB). Expect 5–10 minutes on first boot. Subsequent starts are faster once the model is cached on the EBS volume. Use `gatethread warm` to pre-load the model before your session.
+
+The gateway is available at `http://localhost:8000`. Point your editor at it.
 
 **Connect your editor:**
 
