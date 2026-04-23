@@ -23,9 +23,9 @@ GateThread is a self-hosted AI gateway that runs on your own infrastructure. Eve
 
 **A local model decides what happens next.** Simple questions — syntax, boilerplate, lookups — are answered locally for free. Complex prompts that need stronger reasoning go to Claude. The routing call is a short structured classification prompt — not a full inference pass — to keep latency acceptable on CPU.
 
-**When a prompt reaches Claude, it arrives optimized.** GateThread compresses your session history into a structured knowledge graph — facts as nodes, relationships as edges, scores that decay with time. The injected context is ranked by relevance and recency. You spend fewer tokens and get a better answer than if you'd pasted a raw transcript.
+**When a prompt reaches Claude, it arrives optimized.** GateThread compresses your session history into typed structured facts — decisions, constraints, open questions, findings — stored as searchable vectors. The injected context is ranked by relevance and recency, not raw history. You spend fewer tokens and get a better answer than if you'd pasted a raw transcript.
 
-**Your next session picks up where you left off.** The knowledge graph persists. When you start working on something related, the relevant neighborhood is retrieved and injected automatically. You never re-explain the same thing twice.
+**Your next session picks up where you left off.** Session facts persist. When you start working on something related, the most relevant facts are retrieved and injected automatically. Open questions are always surfaced until they're resolved. You never re-explain the same thing twice.
 
 **Sensitive data is redacted before anything else.** PII and credentials are replaced with typed placeholders the moment a prompt enters the gateway — before routing, before the local model, before storage. Sensitive values never leave your machine.
 
@@ -56,7 +56,7 @@ These are acknowledged tradeoffs, not oversights.
 | Local model as first responder | ❌ | ❌ | ❌ | ✅ |
 | Routes between cloud providers | ✅ | ✅ | ❌ | ✅ |
 | Session memory and compression | ❌ | ❌ | ❌ | ✅ |
-| Knowledge graph context retrieval | ❌ | ❌ | ❌ | ✅ |
+| Relevance-ranked context retrieval | ❌ | ❌ | ❌ | ✅ |
 | PII redaction before cloud | ❌ | ❌ | ❌ | ✅ |
 | Data stays on your infrastructure | ❌ | ❌ | ❌ | ✅ |
 | Audit log with redaction record | ❌ | Partial | ✅ | ✅ |
@@ -72,7 +72,7 @@ LiteLLM handles the provider abstraction layer well. GateThread uses it internal
 
 **Intelligent routing.** Not every question needs Claude. The routing decision is a fast structured classification, not a full inference pass. Simple tasks stay local and cost nothing.
 
-**Memory that works.** Sessions are compressed into a knowledge graph, not a flat list of facts. Relationships between facts are explicit. Scores decay with time. Contradictions are resolved by a belief revision engine. When a prompt reaches a paid model, the injected context is always the most relevant, most recent, non-contradicted neighborhood of what the developer was working on — not a raw token dump.
+**Memory that works.** Sessions are compressed into typed structured facts — decisions, constraints, open questions, findings — stored as searchable vectors. Retrieval ranks by semantic relevance weighted by recency, not raw timestamp order. Open questions are always injected until closed. Duplicate facts are merged at write time so the store stays clean across sessions. When a prompt reaches a paid model, the context injected is the most relevant facts from your history — not a transcript dump.
 
 **Private by default.** Sensitive data is redacted at the door — before routing, before the local model, before storage. One rule, applied once, at the entry point.
 
@@ -81,6 +81,16 @@ LiteLLM handles the provider abstraction layer well. GateThread uses it internal
 **Operator-grade deployment.** Infrastructure-as-code from day one. No manual setup. Repeatable across environments.
 
 ---
+
+Priority roadmap (short)
+1. Schema (typed-facts): design facts table and file_activity index — typed facts enable categorical injection rules.
+2. Compressor (session batch + pre-filter): pre-filter noisy tool calls then run one session-level LLM to emit typed facts.
+3. Retriever (relevance-first): embed(prompt) → pgvector seed → apply recency-weight (score = cosine_similarity × exp(-λ × days_old)) and file-boosting. Open questions always-inject.
+4. Write-time dedup & supersede: near-duplicate merging and supersede semantics to keep the store curated (the long-term moat).
+5. Metrics & instrumenting (discovery_tokens, local_vs_cloud counts).
+6. Managed/cloud deployment and enterprise features.
+
+V1 focus: ship local-first (docker compose / SQLite fallback) to maximize adoption; cloud/terraform remains V1.1+.
 
 ## V1 Features — Definition of Done
 
